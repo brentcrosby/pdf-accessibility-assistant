@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Visual Studio Code
+.vscode/
+
+# Maven and Java build output
+target/
+*.class
+
+# Logs and temporary files
+*.log
+*.tmp
+tmp/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# PDF fixtures that have not been explicitly approved for the public corpus
+fixtures/private/
+fixtures/unreviewed/
