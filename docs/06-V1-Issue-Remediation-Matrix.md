@@ -11,6 +11,23 @@ This is a planning gate, not a statement of implemented support. A candidate may
 - **Report-only:** detected and explained, but not remediated in V1.
 - **Unsupported/deferred:** outside the safe V1 boundary.
 
+## Reference corpus strategy
+
+Use a small set of deliberately selected public Caltrans PDFs to represent realistic public-sector documents, supplemented by fully synthetic fixtures for edge cases. For each selected real-world source, plan up to four test versions:
+
+| Version | Purpose |
+| --- | --- |
+| Original public PDF | Preserve a realistic baseline and document its existing accessibility state. |
+| Deliberately degraded derivative | Introduce a recorded set of known defects so detection can be evaluated against known expectations. |
+| Acrobat auto-tagged derivative | Observe what automated tagging produces; treat it as a comparison output, not ground truth. |
+| Manually reviewed reference | Optional best-known result for semantic comparison and documented PAC review. |
+
+Do not rely only on fully stripping a document's tags. Include controlled, isolated defects in otherwise tagged documents, such as missing title metadata, disabled display-title preference, missing language metadata, removed figure alt text, or an intentionally incorrect heading level. This better represents partially remediated and inconsistently tagged documents while keeping expected results knowable.
+
+For every source and derivative, the future corpus manifest must record the source URL, retrieval date, SHA-256 hash, provenance or reuse notes, transformation performed, tool and version used, expected findings, and permitted repository handling. Publicly downloadable does not automatically mean safe to redistribute: initially record references and transformation instructions, and commit a Caltrans source or derivative only after its reuse status and third-party content have been reviewed.
+
+If Acrobat cloud-based auto-tagging is used, record that processing path. No workplace, internal, confidential, personal, or controlled PDF may be used without explicit workplace approval.
+
 ## Initial matrix
 
 | Candidate issue | Proposed detection evidence | Initial classification | Proposed action | Verification | Main risks | Required planning/spike evidence |
@@ -35,7 +52,7 @@ Subject to successful spikes, aim for:
 
 - **Deterministic allowlist:** display-title preference and technically safe synchronization of user-approved metadata values.
 - **Review-required inputs:** document title and language supplied or confirmed by the user.
-- **One ambiguous demonstration:** alt text or heading level, but only if stable targeting and safe mutation are proven.
+- **One ambiguous demonstration:** an alt-text suggestion for an existing, safely identifiable `<Figure>` tag, but only if stable targeting and safe mutation are proven. Heading-level mutation remains deferred unless later evidence warrants reconsideration.
 - **Report-only foundation:** encrypted/restricted, malformed, tagged/untagged, and selected unsupported-condition explanations.
 
 ## Promotion checklist
@@ -58,22 +75,24 @@ Before any action becomes automatic:
 - Detection details will change as PDFBox and veraPDF behavior is learned.
 - User-confirmed values can still require technical validation before writing.
 - A safe metadata change may be deterministic even when choosing the correct human-language value is not.
+- Acrobat auto-tagged output and PAC results are evidence sources, not semantic ground truth.
 
 ## Open questions
 
 - Should title changes update both the information dictionary and XMP in V1?
 - Which language-tag standard and validation library should define accepted values?
-- Can one structure-level suggestion be implemented without overstating V1 capability?
+- Can an alt-text suggestion be attached to an existing figure tag without overstating V1 capability or exposing document content unsafely?
 - Which checks can veraPDF support directly, and which remain application-specific observations?
 
 ## Non-goals
 
 - Treating this initial matrix as final technical truth.
 - Inferring semantic values automatically because a model is confident.
+- Automatically retagging an entire PDF in V1.
 - Expanding V1 to full tag-tree, table, form, reading-order, or OCR remediation.
 
 ## Deferred decisions
 
-- The first ambiguous suggestion type.
+- Whether evidence ultimately supports alt-text mutation or limits V1 to explanation-only suggestions.
 - Exact validator profiles and result mappings.
-- Exact supported-PDF limits and corpus size.
+- Exact supported-PDF limits, corpus size, and selected public Caltrans source documents.
