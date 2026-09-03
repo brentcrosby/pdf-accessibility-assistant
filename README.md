@@ -44,6 +44,7 @@ The stack is an intended direction, not evidence that implementation already exi
 - [V1 Issue and Remediation Matrix](docs/06-V1-Issue-Remediation-Matrix.md)
 - [Learning Log](docs/07-Learning-Log.md)
 - [Initial Backlog](docs/08-Initial-Backlog.md)
+- [Test Corpus Manifest](docs/09-Test-Corpus-Manifest.md)
 
 ## Current planning gate
 
