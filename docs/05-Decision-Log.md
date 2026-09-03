@@ -79,11 +79,21 @@ Use this log for choices that affect scope, safety, architecture, or claims. Rec
 - **Options:** Provider-backed suggestions, heuristic suggestions behind the same interface, or no external AI in the first release.
 - **Decision criteria:** Data handling, cost, reliability, educational value, and whether AI materially improves the bounded workflow.
 
+### D-012 — Approve the V1 planning boundary
+
+- **Status:** Accepted on 2026-09-03
+- **Decision:** V1 will analyze title metadata, display-title preference, document language, basic tagged/untagged state, encrypted or restricted inputs, malformed inputs, and selected unsupported conditions. Automatic fixes remain limited to metadata actions that pass the evidence-based allowlist. The only planned semantic AI demonstration is an alt-text suggestion for an existing, safely identifiable `<Figure>` tag, with explicit human approval required before mutation.
+- **Deferred from V1:** Automatic full-document tagging, reading-order repair, heading mutation, table remediation, form remediation, and OCR.
+- **Test strategy:** Use approved public Caltrans PDFs as realistic baselines, controlled degraded derivatives with known defects, Acrobat auto-tagged derivatives as comparison output, optional manually reviewed references, and synthetic edge-case fixtures.
+- **Reason:** This boundary demonstrates an end-to-end remediation workflow while keeping semantic risk, technical complexity, data exposure, and learning scope manageable.
+- **Consequence:** Feasibility spikes may remove a candidate capability, but adding broader remediation requires a new recorded decision. Acrobat, veraPDF, and PAC results are evidence sources rather than guarantees or semantic ground truth.
+
 ## Assumptions
 
 - Decisions marked “accepted for V1” may be revisited after evidence changes.
 - Technical spikes will provide the missing evidence for D-008 through D-010.
 - The log will be updated in the same change that adopts a consequential decision.
+- D-012 approves the planning boundary; it does not claim that any candidate capability has passed implementation or validation.
 
 ## Non-goals
 
