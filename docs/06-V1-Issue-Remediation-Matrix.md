@@ -46,9 +46,9 @@ If Acrobat cloud-based auto-tagging is used, record that processing path. No wor
 | Form-field accessibility | AcroForm inspection plus human context | Unsupported/deferred | Explain limitation | Manual keyboard and screen-reader review | Labels, instructions, error handling, and widget relationships are complex | Deferred beyond V1 |
 | Scanned/image-only PDF requiring OCR | Text/image heuristics | Unsupported/deferred | Report likely OCR need without claiming certainty | Manual inspection | False classification; OCR quality and language issues | Deferred beyond V1 |
 
-## Provisional V1 target
+## Approved V1 planning boundary
 
-Subject to successful spikes, aim for:
+Approved on 2026-09-03. The boundary controls what V1 may attempt; every candidate still requires successful feasibility and validation evidence before it is described as supported.
 
 - **Deterministic allowlist:** display-title preference and technically safe synchronization of user-approved metadata values.
 - **Review-required inputs:** document title and language supplied or confirmed by the user.
