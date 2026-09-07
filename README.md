@@ -7,16 +7,15 @@ An AI-assisted PDF accessibility remediation tool that separates safe, determini
 
 ## Status
 
-**Planning and feasibility stage.** The application has not been scaffolded yet. The current work defines V1, validates technical assumptions, and protects the boundary between automatic changes and human-reviewed suggestions.
+**First implementation slice in progress.** The application now provides bounded upload and analysis, human metadata-review records, and a revalidated export path for selected deterministic metadata actions. Broader remediation remains deliberately out of scope.
 
 ## Planned V1 workflow
 
 1. Upload a public or synthetic PDF.
-2. Analyze a limited set of basic accessibility issues.
-3. Apply only allowlisted deterministic metadata fixes.
-4. Present ambiguous remediation suggestions for approval or rejection.
-5. Export a new remediated PDF without modifying the original.
-6. Revalidate supported checks and report remaining limitations.
+2. Analyze title, document language, display-title preference, and basic tagged/untagged signals.
+3. Record a human review decision for missing metadata values.
+4. Export a new copy with only supported deterministic actions: enable display-title when a title already exists and apply a human-confirmed document language.
+5. Revalidate the supported metadata checks and report remaining limitations.
 
 ## Safety and data boundary
 
@@ -32,7 +31,33 @@ Development and demonstration use only public or synthetic PDFs unless workplace
 - JUnit 5 and Mockito
 - GitHub Actions
 
-The stack is an intended direction, not evidence that implementation already exists.
+The build targets Java 21. The initial implementation uses Spring Boot 3.5.16 and Apache PDFBox 3.0.8.
+
+## Run locally
+
+Prerequisites: Java 21 and Maven 3.9+.
+
+```bash
+mvn verify
+mvn spring-boot:run
+```
+
+Open `http://localhost:8080` and upload a public or synthetic PDF no larger than 10 MB. The API is in-memory by design for this first slice; restarting the app removes uploaded files and review records.
+
+### Current API
+
+- `POST /api/documents` with multipart `file` and `sourceType` (`PUBLIC` or `SYNTHETIC`)
+- `GET /api/documents/{id}`
+- `POST /api/documents/{id}/reviews` with an issue code, `APPROVE` or `REJECT`, and an approved metadata value when required
+- `POST /api/documents/{id}/export` to download a new PDF copy and supported revalidation headers
+
+## Implemented boundary
+
+- The original upload is retained unchanged in memory and every export begins from its original bytes.
+- No document content is sent to an AI provider.
+- Tagging signals are reported only; this application does not retag PDFs, repair reading order, modify headings, remediate tables/forms, or perform OCR.
+- Missing title review can be recorded, but title writing is intentionally withheld in this first slice until the title/XMP synchronization spike demonstrates a safe round trip.
+- An export result is not a PAC, PDF/UA, WCAG, Section 508, or legal-compliance result.
 
 ## Project headquarters
 
@@ -45,10 +70,12 @@ The stack is an intended direction, not evidence that implementation already exi
 - [Learning Log](docs/07-Learning-Log.md)
 - [Initial Backlog](docs/08-Initial-Backlog.md)
 - [Test Corpus Manifest](docs/09-Test-Corpus-Manifest.md)
+- [CT-001 Metadata Defect Profile](docs/10-CT-001-Metadata-Defect-Profile.md)
+- [CT-001 PDFBox Inspection Spike](docs/11-CT-001-PDFBox-Inspection-Spike.md)
 
-## Current planning gate
+## Current evidence gate
 
-No production application scaffolding begins until the initial PDFBox and veraPDF feasibility spikes provide enough evidence to confirm the deterministic-fix allowlist and select the first human-review suggestion.
+Before any additional metadata action becomes automatic, it must pass its own controlled PDFBox write/save/reopen experiment and be added to the decision log. veraPDF and PAC remain later evidence sources; they are not integrated compliance guarantees.
 
 ## Portfolio goal
 
