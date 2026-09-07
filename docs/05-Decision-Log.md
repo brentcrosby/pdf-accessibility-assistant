@@ -60,6 +60,8 @@ Use this log for choices that affect scope, safety, architecture, or claims. Rec
 - **Status:** Proposed
 - **Proposal:** Begin with document title metadata, display-title preference, and user-confirmed document language.
 - **Evidence needed:** PDFBox round-trip experiments across the reference corpus, before/after inspection, and validation results.
+- **Initial evidence (2026-09-07):** A read-only PDFBox 3.0.8 inspection of CT-001, run with a temporary Java 17 environment, read the information-dictionary title, catalog language, and viewer preference successfully. PDFBox also detected an XMP stream; its exported XMP contains the same title in `dc:title`. No write, save/reopen, or metadata-synchronization behavior was tested.
+- **Consequence:** The title candidate remains proposed. A future title-defect experiment must intentionally handle both the information dictionary and XMP to avoid mistaking an inconsistent-metadata case for a missing-title case.
 
 ### D-009 — veraPDF integration mode
 
