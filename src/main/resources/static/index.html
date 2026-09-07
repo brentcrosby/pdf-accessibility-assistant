@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PDF Accessibility Assistant</title>
+    <style>
+        :root { font-family: system-ui, sans-serif; color: #172033; background: #f4f7fb; }
+        body { margin: 0; }
+        main { max-width: 760px; margin: 0 auto; padding: 3rem 1.25rem; }
+        h1 { margin-bottom: .25rem; }
+        .notice, form, #result { background: white; border: 1px solid #d8e0ec; border-radius: .75rem; padding: 1.25rem; margin: 1rem 0; }
+        .notice { border-left: .35rem solid #3559a6; }
+        label { display: block; font-weight: 650; margin-top: .8rem; }
+        input, select, button { font: inherit; margin-top: .35rem; }
+        input, select { width: 100%; box-sizing: border-box; padding: .6rem; }
+        button { border: 0; border-radius: .4rem; padding: .65rem 1rem; color: white; background: #1f4b99; cursor: pointer; }
+        button:disabled { opacity: .6; cursor: wait; }
+        #status { min-height: 1.5rem; }
+        .issue { border-top: 1px solid #e7ebf2; padding: .8rem 0; }
+        .tag { display: inline-block; border-radius: 99px; padding: .18rem .55rem; background: #e6eefc; color: #173e81; font-size: .82rem; }
+        pre { overflow: auto; background: #f7f9fc; padding: .8rem; border-radius: .35rem; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>PDF Accessibility Assistant</h1>
+    <p>Upload a public or synthetic PDF for a bounded metadata and tagging-state check.</p>
+    <section class="notice">
+        This is a remediation assistant, not a guarantee of PAC, PDF/UA, WCAG, Section 508, or legal compliance. Do not upload workplace or sensitive PDFs without explicit approval.
+    </section>
+    <form id="upload-form">
+        <label for="file">PDF file</label>
+        <input id="file" name="file" type="file" accept="application/pdf,.pdf" required>
+        <label for="sourceType">Source type</label>
+        <select id="sourceType" name="sourceType" required>
+            <option value="PUBLIC">Public PDF</option>
+            <option value="SYNTHETIC">Synthetic PDF</option>
+        </select>
+        <p><button id="submit" type="submit">Analyze PDF</button></p>
+        <div id="status" role="status" aria-live="polite"></div>
+    </form>
+    <section id="result" hidden aria-live="polite"></section>
+</main>
+<script>
+    const form = document.querySelector('#upload-form');
+    const submit = document.querySelector('#submit');
+    const status = document.querySelector('#status');
+    const result = document.querySelector('#result');
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        submit.disabled = true;
+        status.textContent = 'Analyzing locally in this session…';
+        result.hidden = true;
+        const data = new FormData(form);
+        try {
+            const response = await fetch('/api/documents', { method: 'POST', body: data });
+            const body = await response.json();
+            if (!response.ok) throw new Error(body.message || 'Upload failed.');
+            showResult(body);
+            status.textContent = 'Analysis complete.';
+        } catch (error) {
+            status.textContent = error.message;
+        } finally {
+            submit.disabled = false;
+        }
+    });
+
+    function showResult(document) {
+        const analysis = document.analysis;
+        const issues = analysis.issues.length
+            ? analysis.issues.map(issue => `${renderIssue(document, issue)}`).join('')
+            : '<p>No bounded V1 issues were detected. This is not a compliance result.</p>';
+        result.innerHTML = `
+            <h2>${escapeHtml(document.originalFilename)}</h2>
+            <p>${analysis.pageCount} page(s) · title: ${escapeHtml(analysis.title || 'missing')} · language: ${escapeHtml(analysis.language || 'missing')}</p>
+            <p>Tagged signals: Marked=${analysis.markedAsTagged}, structure tree=${analysis.structureTreePresent}</p>
+            <h2>Findings</h2>${issues}
+            <p><button id="export" type="button">Export supported remediated copy</button></p>
+            <h2>Session details</h2><pre>${escapeHtml(JSON.stringify({ id: document.id, originalSha256: document.originalSha256 }, null, 2))}</pre>`;
+        result.querySelectorAll('[data-review-form]').forEach(reviewForm => {
+            reviewForm.addEventListener('submit', event => submitReview(event, document.id));
+        });
+        result.querySelector('#export').addEventListener('click', () => exportDocument(document));
+        result.hidden = false;
+    }
+
+    function renderIssue(documentSnapshot, issue) {
+        const recorded = documentSnapshot.recordedReviews[issue.code];
+        const review = issue.requiresHumanValue
+            ? `<form data-review-form data-issue-code="${escapeHtml(issue.code)}">
+                   <label>Reviewed value for ${escapeHtml(issue.code)}
+                       <input name="value" required maxlength="250" value="${escapeHtml(recorded?.value || '')}">
+                   </label>
+                   <p><button name="decision" value="APPROVE" type="submit">Approve value</button>
+                   <button name="decision" value="REJECT" type="submit">Reject</button></p>
+               </form>`
+            : '';
+        const decision = recorded ? `<p>Human review: ${escapeHtml(recorded.decision)}${recorded.value ? ` (${escapeHtml(recorded.value)})` : ''}</p>` : '';
+        return `<article class="issue"><span class="tag">${escapeHtml(issue.disposition)}</span><h3>${escapeHtml(issue.code)}</h3><p>${escapeHtml(issue.message)}</p><p>${escapeHtml(issue.recommendedAction)}</p>${decision}${review}</article>`;
+    }
+
+    async function submitReview(event, documentId) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const clickedButton = event.submitter;
+        const response = await fetch(`/api/documents/${documentId}/reviews`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                issueCode: form.dataset.issueCode,
+                decision: clickedButton.value,
+                value: form.elements.value.value
+            })
+        });
+        const body = await response.json();
+        if (!response.ok) {
+            status.textContent = body.message || 'Review could not be recorded.';
+            return;
+        }
+        status.textContent = 'Review decision recorded.';
+        showResult(body);
+    }
+
+    async function exportDocument(documentSnapshot) {
+        status.textContent = 'Creating and revalidating a new PDF copy…';
+        const response = await fetch(`/api/documents/${documentSnapshot.id}/export`, { method: 'POST' });
+        if (!response.ok) {
+            const body = await response.json();
+            status.textContent = body.message || 'Export failed.';
+            return;
+        }
+        const download = document.createElement('a');
+        download.href = URL.createObjectURL(await response.blob());
+        download.download = `${documentSnapshot.originalFilename.replace(/\.pdf$/i, '')}-remediated.pdf`;
+        download.click();
+        URL.revokeObjectURL(download.href);
+        const actions = response.headers.get('X-Remediation-Actions') || 'no supported changes';
+        status.textContent = `Export complete: ${actions}.`;
+    }
+
+    function escapeHtml(value) {
+        return String(value).replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+    }
+</script>
+</body>
+</html>
