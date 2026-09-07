@@ -96,13 +96,13 @@ Before creating or retaining any transformed fixture:
 - [x] Owner approved CT-001, CT-002, and CT-003 for baseline inspection on 2026-09-03.
 - [x] Original files were downloaded only to temporary, untracked analysis storage.
 - [x] Baseline hashes and technical observations were recorded.
-- [ ] File-specific reuse and third-party-content review is complete.
-- [ ] Local fixture storage and repository rules are agreed.
-- [ ] The first transformation is limited to a written defect profile.
+- [ ] File-specific reuse and third-party-content review is complete for any source whose bytes or derivatives would be retained or distributed.
+- [x] Fixture storage and repository rules are agreed: record source references, hashes, and specifications; do not commit public-source PDF bytes or derivatives pending review (D-013, 2026-09-07).
+- [x] The first transformation is limited to the written CT-001 metadata defect profile; no derivative has been created.
 - [ ] No production application scaffolding begins as part of corpus preparation.
 
 ## Open questions and deferred decisions
 
-- Decide whether repository fixtures should contain PDF bytes, reproducible transformation scripts, hashes plus source URLs, or only fully synthetic PDFs.
+- The repository policy keeps public-source PDF bytes and derivatives out pending file-specific reuse review; reusable binary fixtures should be fully synthetic by default.
 - Confirm whether CT-002 has an existing safely identifiable non-logo figure suitable for the V1 alt-text approval experiment; current structure-tree evidence does not establish one.
-- Defer Acrobat auto-tagging, tag stripping, controlled defect creation, veraPDF runs, and manual PAC 3 testing until the storage/reuse rules and written defect profiles are approved.
+- Defer Acrobat auto-tagging, tag stripping, controlled defect creation, veraPDF runs, and manual PAC 3 testing until their individual written transformation or test plans are approved.
