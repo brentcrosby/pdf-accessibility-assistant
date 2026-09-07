@@ -97,6 +97,13 @@ Use this log for choices that affect scope, safety, architecture, or claims. Rec
 - **Reason:** Public availability does not automatically establish redistribution rights, especially for embedded visual or third-party material. This policy keeps the portfolio repository reviewable while preserving the project's public-or-synthetic data boundary.
 - **Consequence:** CT-001 through CT-003 remain reference-only baselines in GitHub. The first controlled defect profile is a written specification, not a created or committed PDF. Fully synthetic fixtures remain the default choice when a shareable binary is needed.
 
+### D-014 — Begin the deterministic metadata vertical slice
+
+- **Status:** Accepted on 2026-09-07
+- **Decision:** Begin implementation as a Java 21 Spring Boot modular monolith with in-memory document handling. The first slice supports upload of a declared public or synthetic PDF, bounded metadata/tag-state analysis, human review records for missing metadata, and export of a new copy with only two supported actions: enabling display-title when a title already exists and applying a human-confirmed document language.
+- **Reason:** This establishes a real, testable end-to-end workflow while preserving the evidence boundary around riskier mutation and semantic remediation.
+- **Consequence:** The app does not yet write titles when XMP is present, retag PDFs, use external AI, persist files, or claim broader conformance. Each later action still requires an evidence-backed allowlist decision.
+
 ## Assumptions
 
 - Decisions marked “accepted for V1” may be revisited after evidence changes.
