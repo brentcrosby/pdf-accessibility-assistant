@@ -34,7 +34,7 @@ These properties are baseline observations only. They are not a finding that the
 
 ## Required evidence before creation
 
-- A PDFBox inspection spike identifies the exact APIs and metadata representations present in CT-001, including any XMP title representation.
+- [x] A read-only PDFBox 3.0.8 inspection spike identified the information-dictionary title, catalog language, viewer preference, and XMP presence in CT-001 on 2026-09-07. Exported XMP contains the title in `dc:title` with `xml:lang="x-default"`.
 - A written transformation plan names the tool version and expected before/after values.
 - Save/reopen checks are designed before the mutation is run.
 - The activity remains a feasibility experiment, outside the production application and without Spring Boot scaffolding.
@@ -57,4 +57,4 @@ For each derivative, compare it with the recorded baseline after reopening it wi
 
 ## Recommended next step
 
-Run a small, disposable PDFBox inspection spike against the temporary CT-001 baseline. Its only goal is to map title, XMP, language, and viewer-preference read behavior before any derivative is created.
+Write a precise PDFBox title-metadata transformation plan for CT-001-MD-001, including how the information dictionary and XMP will be changed consistently, then review it before any derivative is created.
