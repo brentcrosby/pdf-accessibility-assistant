@@ -88,6 +88,13 @@ Use this log for choices that affect scope, safety, architecture, or claims. Rec
 - **Reason:** This boundary demonstrates an end-to-end remediation workflow while keeping semantic risk, technical complexity, data exposure, and learning scope manageable.
 - **Consequence:** Feasibility spikes may remove a candidate capability, but adding broader remediation requires a new recorded decision. Acrobat, veraPDF, and PAC results are evidence sources rather than guarantees or semantic ground truth.
 
+### D-013 — Fixture storage and reuse policy
+
+- **Status:** Accepted on 2026-09-07
+- **Decision:** Keep public-source PDF bytes and all derivatives out of GitHub until each source has completed file-specific reuse and third-party-content review. The repository may contain source URLs, retrieval dates, SHA-256 hashes, inspection results, synthetic fixtures, and reproducible defect specifications. Temporary local copies may be used for read-only inspection and later approved feasibility spikes, but are not project artifacts to commit.
+- **Reason:** Public availability does not automatically establish redistribution rights, especially for embedded visual or third-party material. This policy keeps the portfolio repository reviewable while preserving the project's public-or-synthetic data boundary.
+- **Consequence:** CT-001 through CT-003 remain reference-only baselines in GitHub. The first controlled defect profile is a written specification, not a created or committed PDF. Fully synthetic fixtures remain the default choice when a shareable binary is needed.
+
 ## Assumptions
 
 - Decisions marked “accepted for V1” may be revisited after evidence changes.
@@ -106,12 +113,14 @@ Use this log for choices that affect scope, safety, architecture, or claims. Rec
 - Who approves a decision change for this single-owner project: the owner alone, or the owner after a written review checklist?
 - Should each accepted technical decision link to a test, experiment, or issue once implementation begins?
 - What threshold of evidence is required to add an action to the automatic-fix allowlist?
+- When, if ever, will a reviewed public-source derivative be retained outside temporary local analysis storage?
 
 ## Deferred decisions
 
 - Deployment, authentication, persistence, AI provider, and advanced remediation.
 - Exact UI framework and package structure.
 - Stretch goals and post-V1 roadmap.
+- Whether any approved public-source PDF bytes or derivatives will be versioned in the repository after review.
 
 ## Recommended next planning step
 
