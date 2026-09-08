@@ -23,4 +23,17 @@ class DocumentWorkflowServiceTest {
         assertThat(workflow.document(document.id()).reviews()).containsKey("MISSING_LANGUAGE");
         assertThat(workflow.export(document.id()).reanalysis().language()).isEqualTo("en");
     }
+
+    @Test
+    void recordsMissingTitleReviewButDoesNotWriteTitleInThisSlice() throws Exception {
+        byte[] fixture = PdfFixtureFactory.pdf(null, "en", false);
+        StoredDocument document = workflow.upload("missing-title.pdf", SourceType.SYNTHETIC, fixture);
+
+        workflow.recordReview(document.id(), "MISSING_TITLE", ReviewDecision.APPROVE, "Reviewed title");
+
+        assertThat(workflow.document(document.id()).reviews()).containsKey("MISSING_TITLE");
+        assertThat(workflow.export(document.id()).appliedActions())
+                .doesNotContain("REVIEWED_TITLE_APPLIED");
+        assertThat(workflow.export(document.id()).reanalysis().title()).isNull();
+    }
 }

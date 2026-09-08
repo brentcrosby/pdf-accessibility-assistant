@@ -72,6 +72,7 @@ Open `http://localhost:8080` and upload a public or synthetic PDF no larger than
 - [Test Corpus Manifest](docs/09-Test-Corpus-Manifest.md)
 - [CT-001 Metadata Defect Profile](docs/10-CT-001-Metadata-Defect-Profile.md)
 - [CT-001 PDFBox Inspection Spike](docs/11-CT-001-PDFBox-Inspection-Spike.md)
+- [CT-001 Title-Metadata Transformation Plan](docs/12-CT-001-Title-Metadata-Transformation-Plan.md)
 
 ## Current evidence gate
 

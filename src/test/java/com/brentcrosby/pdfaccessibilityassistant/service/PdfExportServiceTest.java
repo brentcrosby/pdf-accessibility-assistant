@@ -32,4 +32,16 @@ class PdfExportServiceTest {
         assertThat(exported.reanalysis().title()).isEqualTo("Example title");
         assertThat(exported.reanalysis().pageCount()).isEqualTo(1);
     }
+
+    @Test
+    void enablesDisplayTitleWhenTheExistingTitleIsValid() throws Exception {
+        byte[] original = PdfFixtureFactory.pdf("Example title", "en", false);
+
+        PdfExportService.ExportedPdf exported = exportService.export(original, Map.of());
+
+        assertThat(exported.appliedActions()).containsExactly("DISPLAY_DOCUMENT_TITLE_ENABLED");
+        assertThat(exported.reanalysis().title()).isEqualTo("Example title");
+        assertThat(exported.reanalysis().language()).isEqualTo("en");
+        assertThat(exported.reanalysis().displayDocumentTitle()).isTrue();
+    }
 }
