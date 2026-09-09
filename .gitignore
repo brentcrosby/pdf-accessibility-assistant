@@ -16,6 +16,7 @@ target/
 *.log
 *.tmp
 tmp/
+output/
 
 # Local environment and secrets
 .env

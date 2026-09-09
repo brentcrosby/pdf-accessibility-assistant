@@ -7,6 +7,7 @@ import com.brentcrosby.pdfaccessibilityassistant.support.PdfFixtureFactory;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DocumentWorkflowServiceTest {
     private final PdfAnalysisService analysisService = new PdfAnalysisService();
@@ -35,5 +36,28 @@ class DocumentWorkflowServiceTest {
         assertThat(workflow.export(document.id()).appliedActions())
                 .doesNotContain("REVIEWED_TITLE_APPLIED");
         assertThat(workflow.export(document.id()).reanalysis().title()).isNull();
+    }
+
+    @Test
+    void retainsOriginalBytesAfterExport() throws Exception {
+        byte[] fixture = PdfFixtureFactory.pdf("Example title", "en", false);
+        StoredDocument document = workflow.upload("original.pdf", SourceType.SYNTHETIC, fixture);
+
+        workflow.export(document.id());
+
+        assertThat(workflow.document(document.id()).originalBytes()).isEqualTo(fixture);
+    }
+
+    @Test
+    void rejectsInvalidOrMultilingualDocumentLanguageValues() throws Exception {
+        byte[] fixture = PdfFixtureFactory.pdf("Example title", null, false);
+        StoredDocument document = workflow.upload("language.pdf", SourceType.SYNTHETIC, fixture);
+
+        assertThatThrownBy(() -> workflow.recordReview(document.id(), "MISSING_LANGUAGE", ReviewDecision.APPROVE, "en_US"))
+                .isInstanceOf(PdfInputException.class)
+                .hasMessageContaining("valid BCP 47 language tag");
+        assertThatThrownBy(() -> workflow.recordReview(document.id(), "MISSING_LANGUAGE", ReviewDecision.APPROVE, "en-US,fr-FR"))
+                .isInstanceOf(PdfInputException.class)
+                .hasMessageContaining("valid BCP 47 language tag");
     }
 }

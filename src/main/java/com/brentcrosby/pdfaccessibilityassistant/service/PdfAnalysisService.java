@@ -9,6 +9,7 @@ import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentCatalog;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
+import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -88,6 +89,8 @@ public class PdfAnalysisService {
                     markedAsTagged,
                     structureTreePresent,
                     List.copyOf(issues));
+        } catch (InvalidPasswordException exception) {
+            throw new PdfInputException("Password-protected PDFs are not supported in this V1 slice.", exception);
         } catch (IOException exception) {
             throw new PdfInputException("The file could not be opened as a supported, unencrypted PDF.", exception);
         }

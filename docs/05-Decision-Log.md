@@ -61,6 +61,8 @@ Use this log for choices that affect scope, safety, architecture, or claims. Rec
 - **Proposal:** Begin with document title metadata, display-title preference, and user-confirmed document language.
 - **Evidence needed:** PDFBox round-trip experiments across the reference corpus, before/after inspection, and validation results.
 - **Initial evidence (2026-09-07):** A read-only PDFBox 3.0.8 inspection of CT-001, run with a temporary Java 17 environment, read the information-dictionary title, catalog language, and viewer preference successfully. PDFBox also detected an XMP stream; its exported XMP contains the same title in `dc:title`. No write, save/reopen, or metadata-synchronization behavior was tested.
+- **Additional evidence (2026-09-08):** A temporary Java 21 PDFBox/XMPBox 3.0.8 CT-001 experiment removed both title representations, then restored the neutral test value in both after save/reopen. The required page, encryption, language, viewer-preference, mark-information, and structure-tree invariants remained present; page-1 renders were identical. XMPBox reserialized the XMP packet, so raw XMP bytes were not preserved. See [CT-001 Title/XMP Round-Trip Experiment](13-CT-001-Title-XMP-Round-Trip-Experiment.md) for the exact hashes and boundary.
+- **Additional evidence (2026-09-08):** A temporary Java 21 PDFBox 3.0.8 experiment wrote and reopened the valid catalog-language values `en` and `en-US` while preserving the bounded properties and rendered page. PDFBox also preserved invalid `en_US` and comma-separated `en-US,fr-FR` strings verbatim when the application's BCP 47 guard was bypassed, so PDFBox persistence is not language validation. See [CT-002 Document-Language Round-Trip Experiment](14-CT-002-Document-Language-Round-Trip-Experiment.md) for exact hashes, limitations, and the no-allowlist-expansion boundary.
 - **Consequence:** The title candidate remains proposed. A future title-defect experiment must intentionally handle both the information dictionary and XMP to avoid mistaking an inconsistent-metadata case for a missing-title case.
 
 ### D-009 — veraPDF integration mode
@@ -103,6 +105,13 @@ Use this log for choices that affect scope, safety, architecture, or claims. Rec
 - **Decision:** Begin implementation as a Java 21 Spring Boot modular monolith with in-memory document handling. The first slice supports upload of a declared public or synthetic PDF, bounded metadata/tag-state analysis, human review records for missing metadata, and export of a new copy with only two supported actions: enabling display-title when a title already exists and applying a human-confirmed document language.
 - **Reason:** This establishes a real, testable end-to-end workflow while preserving the evidence boundary around riskier mutation and semantic remediation.
 - **Consequence:** The app does not yet write titles when XMP is present, retag PDFs, use external AI, persist files, or claim broader conformance. Each later action still requires an evidence-backed allowlist decision.
+
+### D-015 — Enable one reviewed decorative-path artifact repair
+
+- **Status:** Accepted on 2026-09-09 under the owner's request to plan and implement actual repairs.
+- **Decision:** Add an explicit one-path artifact export for a contiguous drawing sequence in the page's own content stream, outside existing marked content. The reviewer confirms decorative meaning. The server recomputes the target from the original source and verifies the saved copy before returning it.
+- **Evidence:** [Artifact Repair Plan and Evidence](18-Artifact-Repair-Plan-and-Evidence.md), including rotations, preserved tag/parent trees and shared streams, duplicate-artifact refusal, failure injection, and independent rendered-image/text comparisons.
+- **Limits:** No bulk writing, text deletion/artifacting, figure mutation, title writing or autotagging. Existing marked content and nested forms are excluded. Inline-image pages are excluded after a serialization-preservation test failed. Every successful export supplies its source/output hashes, target, note and verification record.
 
 ## Assumptions
 

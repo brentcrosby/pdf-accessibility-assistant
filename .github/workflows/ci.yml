@@ -20,3 +20,8 @@ jobs:
           cache: maven
       - name: Test
         run: mvn --batch-mode verify
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Review-state tests
+        run: node --test src/test/js/*.test.mjs
