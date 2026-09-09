@@ -17,6 +17,7 @@
             <div><label for="sourceType">Source type</label><select id="sourceType" name="sourceType"><option value="SYNTHETIC">Synthetic PDF</option><option value="PUBLIC">Public PDF</option></select></div>
             <button id="submit" type="submit">Analyze PDF</button>
         </form>
+        <div class="demo-actions"><button type="button" class="secondary" data-demo="semantic">Load tagged demo</button><button type="button" class="secondary" data-demo="untagged">Load untagged demo</button></div>
         <p class="muted">Public or synthetic PDFs, up to 10 MB. Review plans live in this tab until reload; download a report to keep them.</p>
         <p id="status" role="status" aria-live="polite">Choose a PDF to begin.</p>
     </section>
@@ -42,15 +43,18 @@
                 <div class="filters"><div><label for="kind">Content type</label><select id="kind"><option value="ALL">All content</option><option value="TEXT">Text</option><option value="IMAGE">Images</option><option value="PATH">Paths</option></select></div>
                     <div><label for="review-filter">Review status</label><select id="review-filter"><option value="ALL">All statuses</option><option value="UNREVIEWED">Unreviewed</option><option value="ARTIFACT_CANDIDATE">Artifact candidate</option><option value="KEEP_AS_CONTENT">Keep as content</option><option value="DEFER">Deferred</option><option value="UNMAPPED">Unmapped glyphs</option></select></div></div>
                 <label for="search">Search this page</label><input id="search" type="search" placeholder="Text or region ID">
+                <label for="semantic-filter">Tag membership</label><select id="semantic-filter"><option value="ALL">All membership states</option><option value="TAGGED">Tagged</option><option value="UNTAGGED">Untagged</option><option value="ARTIFACT">Artifact</option><option value="UNRESOLVED">Unresolved</option></select>
                 <p id="region-count" class="muted" role="status"></p>
                 <div class="batch-toolbar"><button id="select-visible" type="button" class="secondary">Select visible</button><button id="clear-selection" type="button" class="secondary">Clear selection</button><button id="reset-filters" type="button" class="secondary">Reset filters</button></div>
                 <ul id="region-list" class="region-list" aria-label="Observed regions"></ul>
                 <section id="selected-region" class="selected-region" aria-label="Selected region details"></section>
                 <fieldset id="decisions"><legend id="decision-target">Review selected regions</legend><button type="button" data-decision="KEEP_AS_CONTENT">Keep as content</button><button type="button" data-decision="ARTIFACT_CANDIDATE" class="secondary">Artifact candidate</button><button type="button" data-decision="DEFER" class="secondary">Defer</button></fieldset>
-                <p class="muted">Candidate decisions do not change the PDF. Tag status and figure alt text have not been evaluated.</p>
+                <p class="muted">Candidate decisions do not change the PDF. Semantic mapping below distinguishes confirmed membership from unresolved references.</p>
                 <details><summary>Page coverage and limitations</summary><ul id="page-warnings"></ul></details>
             </aside>
         </section>
+        <section class="export-panel" aria-labelledby="semantic-heading"><h2 id="semantic-heading">Tags, figures and reading order</h2><p id="semantic-status" role="status"></p><button id="semantic-retry" type="button" hidden>Retry semantic review</button><div id="semantic-content"></div></section>
+        <section class="queue-panel" aria-labelledby="repair-heading"><h2 id="repair-heading">Repair transaction</h2><p>Accepted repairs are applied together to a separate copy. Review the queue before exporting. Undo changes the queue, not an already downloaded PDF.</p><p id="repair-count"></p><ol id="repair-queue"></ol><button id="repair-undo" type="button" class="secondary" disabled>Undo queue change</button><button id="verify-transaction" type="button" disabled>Verify and export queued repairs</button><p id="repair-status" role="status"></p></section>
         <section class="queue-panel" aria-labelledby="queue-heading"><div class="section-heading"><div><span class="eyebrow">REVIEW PLAN</span><h2 id="queue-heading">Decision queue</h2></div><button id="undo" class="secondary" type="button" disabled>Undo last change</button></div><p id="queue-summary" role="status"></p><ol id="queue"></ol></section>
         <section id="artifact-panel" class="export-panel" aria-label="Artifact repair" hidden></section>
         <section class="export-panel"><h2>Apply metadata fixes</h2><p>Export a copy that displays the existing document title and applies an approved language. Open the document findings above to review a missing language. For decorative path repairs, select a path and choose Prepare artifact repair.</p><button id="export" type="button">Apply metadata fixes and export PDF</button><div id="export-result" role="status"></div></section>
@@ -58,6 +62,8 @@
     </section>
     <section id="export-history" hidden></section>
     <section id="artifact-history" class="export-panel" aria-label="Repair history" hidden></section>
+    <section id="transaction-history" class="export-panel" aria-label="Verified transaction history" hidden></section>
+    <section class="export-panel" aria-labelledby="benchmark-heading"><h2 id="benchmark-heading">Measured tagging benchmark</h2><p>Run two reproducible synthetic documents with 14 labeled text groups. This is a small regression benchmark, not evidence of superiority over another product.</p><div class="repair-links"><a href="/api/benchmarks/samples/1" download>Download benchmark PDF 1</a><a href="/api/benchmarks/samples/2" download>Download benchmark PDF 2</a></div><button id="run-benchmark" type="button">Run benchmark</button><label for="comparison-file">Import aligned comparison predictions (JSON)</label><input id="comparison-file" type="file" accept="application/json,.json"><p id="benchmark-status" role="status"></p><div id="benchmark-results"></div></section>
     <footer>Bounded observations and human review. This assistant does not establish PAC, PDF/UA, WCAG, Section 508, or legal compliance. No document content is sent to an AI provider.</footer>
 </main>
 <script type="module" src="./app.js"></script>

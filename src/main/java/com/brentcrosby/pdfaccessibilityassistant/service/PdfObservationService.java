@@ -5,6 +5,8 @@ import org.apache.pdfbox.contentstream.PDFGraphicsStreamEngine;
 import org.apache.pdfbox.contentstream.operator.Operator;
 import org.apache.pdfbox.cos.COSBase;
 import org.apache.pdfbox.cos.COSName;
+import org.apache.pdfbox.cos.COSDictionary;
+import org.apache.pdfbox.cos.COSInteger;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
@@ -42,7 +44,8 @@ public class PdfObservationService {
     public record Bounds(double x, double y, double width, double height) {}
     public record Region(String id, int pageNumber, String kind, Bounds bounds, String text,
                          String geometryQuality, String taggingStatus, String altTextStatus,
-                         int unmappedGlyphs, int sourceOperatorIndex) {}
+                         int unmappedGlyphs, int sourceOperatorIndex, Integer mcid,
+                         boolean artifact, boolean markedContentPresent, int markedSequence) {}
     public record PageObservations(int pageNumber, int pageCount, double width, double height,
                                    int rotation, String geometryVersion, List<Region> regions,
                                    boolean truncated, List<String> warnings) {}
@@ -65,6 +68,7 @@ public class PdfObservationService {
             truncated = true;
             collector.warnings.add("Observation limit reached; this page's region list is partial.");
         }
+        if (collector.markInvalid || !collector.marks.isEmpty()) collector.warnings.add("Malformed marked content: semantic membership is unresolved for this page.");
         boolean sideways = page.getRotation() == 90 || page.getRotation() == 270;
         PDRectangle box = page.getCropBox();
         return new PageObservations(pageNumber, document.getNumberOfPages(),
@@ -127,6 +131,10 @@ public class PdfObservationService {
         private int operations;
         private int operatorDepth;
         private int topOperatorIndex = -1;
+        private record Mark(Integer mcid, boolean artifact, int sequence) {}
+        private final List<Mark> marks = new ArrayList<>();
+        private boolean markInvalid;
+        private int nextSequence;
         private Rectangle2D textBounds;
         private final StringBuilder snippet = new StringBuilder();
         private int unmapped;
@@ -148,25 +156,49 @@ public class PdfObservationService {
             budget();
             if (getLevel() > 30) throw new ObservationLimit();
             if (operatorDepth == 0) topOperatorIndex++;
+            String operation = operator.getName();
+            if (operation.equals("BMC") || operation.equals("BDC")) {
+                Integer mcid = null;
+                if (operands.size() != (operation.equals("BMC") ? 1 : 2)) markInvalid = true;
+                if (operands.isEmpty() || !(operands.getFirst() instanceof COSName)) markInvalid = true;
+                boolean artifact = !operands.isEmpty() && COSName.ARTIFACT.equals(operands.getFirst());
+                if (operation.equals("BDC")) {
+                    COSDictionary props = operands.size() > 1 && operands.get(1) instanceof COSDictionary d ? d : null;
+                    if (operands.size() > 1 && operands.get(1) instanceof COSName name && getResources() != null) {
+                        var property = getResources().getProperties(name); props = property == null ? null : property.getCOSObject();
+                    }
+                    if (props == null) markInvalid = true;
+                    else if (props.containsKey(COSName.MCID)) {
+                        if (props.getDictionaryObject(COSName.MCID) instanceof COSInteger n && n.intValue() >= 0) mcid = n.intValue();
+                        else markInvalid = true;
+                    }
+                }
+                marks.add(new Mark(mcid,artifact,++nextSequence));
+            } else if (operation.equals("EMC")) {
+                if (!operands.isEmpty()) markInvalid = true;
+                if (marks.isEmpty()) markInvalid = true; else marks.removeLast();
+            }
             operatorDepth++;
             try { super.processOperator(operator, operands); }
             finally { operatorDepth--; }
         }
 
         @Override public void showForm(PDFormXObject form) throws IOException {
+            var outerMarks = new ArrayList<>(marks);
             GeneralPath outerPath = path;
             int outerClip = clipRule;
             path = new GeneralPath(); clipRule = -1;
             try { super.showForm(form); }
-            finally { path = outerPath; clipRule = outerClip; }
+            finally { if (!marks.equals(outerMarks)) markInvalid = true; marks.clear(); marks.addAll(outerMarks); path = outerPath; clipRule = outerClip; }
         }
 
         @Override public void showTransparencyGroup(PDTransparencyGroup form) throws IOException {
+            var outerMarks = new ArrayList<>(marks);
             GeneralPath outerPath = path;
             int outerClip = clipRule;
             path = new GeneralPath(); clipRule = -1;
             try { super.showTransparencyGroup(form); }
-            finally { path = outerPath; clipRule = outerClip; }
+            finally { if (!marks.equals(outerMarks)) markInvalid = true; marks.clear(); marks.addAll(outerMarks); path = outerPath; clipRule = outerClip; }
         }
 
         @Override protected void showText(byte[] string) throws IOException {
@@ -210,9 +242,11 @@ public class PdfObservationService {
             if (regions.size() >= MAX_REGIONS) throw new ObservationLimit();
             String clean = label.replaceAll("\\p{Cntrl}", " ").strip();
             clean = clean.codePoints().limit(180).collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append).toString();
+            Mark owner = marks.stream().filter(m -> m.mcid() != null).reduce((a,b)->b).orElse(null);
             regions.add(new Region("p" + pageNumber + "-o" + (regions.size() + 1), pageNumber, kind, box,
                     clean, quality, "NOT_EVALUATED", "NOT_EVALUATED", missing,
-                    operatorDepth == 1 ? topOperatorIndex : -1));
+                    operatorDepth == 1 ? topOperatorIndex : -1, owner == null ? null : owner.mcid(),
+                    marks.stream().anyMatch(Mark::artifact), !marks.isEmpty(), owner == null ? -1 : owner.sequence()));
         }
 
         @Override public void drawImage(PDImage image) {
