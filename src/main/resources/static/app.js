@@ -1,6 +1,7 @@
 import {ReviewSession, decisionLabels, filterRegions} from './review-state.mjs';
 import {ArtifactRepairs} from './artifact-repair.mjs';
 import {Portfolio} from './portfolio.mjs';
+import {Workspace} from './workspace.mjs';
 
 const $ = selector => document.querySelector(selector);
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
@@ -11,16 +12,19 @@ let current;
 let view;
 let exportBusy = false;
 let preparedReportUrl;
+const workspace = new Workspace();
 const repairs = new ArtifactRepairs({context:()=>current, checkedFetch, objectUrl, jsonUrl,
-    isBusy:()=>exportBusy, setBusy, continueWith});
+    isBusy:()=>exportBusy, setBusy, continueWith,showExport:()=>workspace.show('export',true)});
 const portfolio = new Portfolio({checkedFetch,objectUrl,jsonUrl,isBusy:()=>exportBusy,setBusy,continueWith,
+    updateWorkspace:(data,queue)=>workspace.update(data,queue),showExport:()=>workspace.show('export',true),
+    semanticUnavailable:()=>workspace.unavailable(),
     refresh:()=>view?.render(),locate:async locations=>{
         if(!locations.length || !view)return;
         const page=locations[0].pageNumber;
         $('#kind').value='ALL';$('#review-filter').value='ALL';$('#semantic-filter').value='ALL';$('#search').value='';
         if(view.number!==page || !view.page)await view.load(page);
         view.selected=new Set(locations.filter(l=>l.pageNumber===page).map(l=>l.regionId));view.focused=locations[0].regionId;view.render();
-        $('#page-scroll').scrollIntoView({block:'center'});$('#page-scroll').focus({preventScroll:true});
+        if(window.innerWidth<761)$('#page-scroll').scrollIntoView({block:'center'});
         announce(`Showing ${view.selected.size} mapped observations on page ${page}.`);
     }});
 function setBusy(busy){exportBusy=busy;$('#export').disabled=busy;$('#submit').disabled=busy;document.querySelectorAll('[data-demo]').forEach(b=>b.disabled=busy);}
@@ -85,8 +89,9 @@ function showDocument() {
     repairs.reset();
     const d = current.snapshot, a = d.analysis;
     $('#result').hidden = false;
+    workspace.open();
     $('#document-name').textContent = d.originalFilename;
-    $('#document-summary').textContent = `${a.pageCount} pages · Title: ${a.title || 'missing'} · Language: ${a.language || 'missing'} · Marked: ${a.markedAsTagged} · Structure tree: ${a.structureTreePresent}`;
+    $('#document-summary').textContent = `${a.pageCount} ${a.pageCount===1?'page':'pages'} · Language: ${a.language || 'not set'} · ${a.structureTreePresent?'Tags detected':'No tag tree detected'}`;
     $('#source-identity').textContent = JSON.stringify(current.review.source, null, 2);
     $('#export-result').replaceChildren();
     release(preparedReportUrl); preparedReportUrl = null;
@@ -169,7 +174,7 @@ class Workbench {
         });
         on('#overlays', 'click', event => {
             const button = event.target.closest('[data-region]');
-            if (button) this.select(button.dataset.region, false);
+            if (button) { if(!['tags','order'].includes(workspace.mode))workspace.show('content');this.select(button.dataset.region, false); }
         });
         on('#decisions', 'click', event => {
             const decision = event.target.dataset.decision;

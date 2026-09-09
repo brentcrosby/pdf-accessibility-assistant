@@ -58,10 +58,12 @@ Build with `mvn verify` first; browser tests launch the built app on port 8085. 
 
 ### Try semantic repairs
 
+The app now keeps the PDF beside one active review tool. Start in **Overview**, then use the task navigation for **Page content**, **Tags & alt text**, **Suggested tags**, **Reading order**, and **Review & export**. The header shows your queued change count; **Benchmark** opens separately. See the [interface research and redesign](docs/20-Guided-Workspace-Redesign.md).
+
 1. Choose **Load tagged demo**. Select a tag in the nested tag list or a region on the page to inspect its mapping.
-2. Enter a meaningful description for the chart and choose **Queue alternative text**.
+2. Open **Tags & alt text**, enter a meaningful description for the chart, and choose **Queue alternative text**.
 3. In **Reading order**, move the H1 before the paragraph using the up/down buttons, then **Queue reading order**.
-4. Review the **Repair transaction** queue and choose **Verify and export queued repairs**. Download the separate PDF and transaction record. **Continue reviewing this export** reloads its saved tags and alt text in a fresh review session.
+4. Open **Review & export**, check the queued changes and choose **Verify and export queued repairs**. Download the separate PDF and transaction record. **Continue reviewing this export** reloads its saved tags and alt text in a fresh review session.
 5. Choose **Load untagged demo** to review suggested headings, paragraphs, list items and captions. Correct roles if needed and accept individual proposals. Exporting writes actual structure elements, marked-content IDs and parent-tree links. New tags append in acceptance order; continue from the export to adjust sibling order.
 6. Run the **Measured tagging benchmark**. Download its two PDFs and comparison template to evaluate another tool on the same labeled groups. Comparison scores are imported, not invented.
 
@@ -141,6 +143,7 @@ The first repair supports contiguous direct-page paths outside existing marked c
 - [Review Workbench Goal and Evidence](docs/17-Review-Workbench-Goal-and-Evidence.md)
 - [Artifact Repair Plan and Evidence](docs/18-Artifact-Repair-Plan-and-Evidence.md)
 - [Semantic Portfolio Release: Plan and Evidence](docs/19-Semantic-Portfolio-Release.md)
+- [Guided Workspace Redesign](docs/20-Guided-Workspace-Redesign.md)
 
 ## Current evidence gate
 

@@ -54,6 +54,7 @@ export class ArtifactRepairs {
                 beforeUrl:this.deps.objectUrl(fromBase64(result.beforePreview,'image/png')),
                 afterUrl:this.deps.objectUrl(fromBase64(result.afterPreview,'image/png'))};
             this.entries.unshift(entry); this.renderHistory();
+            this.deps.showExport?.();
             $('#artifact-panel').innerHTML = `<h2>Artifact repair complete</h2><p role="status">Page ${request.pageNumber}: ${escape(request.regionId)} is now marked as an artifact in the exported copy. Verification passed.</p><p>The download and comparison are in Repair history below.</p>`;
             $('#artifact-history').scrollIntoView({block:'start',behavior:'smooth'});
         } catch (error) {
