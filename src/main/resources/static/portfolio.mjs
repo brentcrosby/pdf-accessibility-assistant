@@ -14,6 +14,7 @@ export class Portfolio {
             catch(error){$('#benchmark-status').textContent=error.message;}
         });
         $('#semantic-content').addEventListener('click',event=>this.action(event));
+        $('#semantic-content').addEventListener('input',event=>{if(event.target.id==='figure-alt')this.altDrafts.set(this.selectedNode,event.target.value);});
         $('#semantic-content').addEventListener('change',event=>{if(event.target.id==='order-parent')this.renderOrder();});
         $('#semantic-retry').addEventListener('click',()=>this.open(this.doc));
         $('#repair-queue').addEventListener('click',event=>{
@@ -24,14 +25,14 @@ export class Portfolio {
         $('#verify-transaction').addEventListener('click',()=>this.export());
     }
     async open(doc) {
-        this.doc=doc;this.data=null;this.queue=new RepairQueue(doc.snapshot.originalSha256);this.members=new Map();this.orders=new Map();this.selectedNode=null;
+        this.doc=doc;this.data=null;this.queue=new RepairQueue(doc.snapshot.originalSha256);this.members=new Map();this.orders=new Map();this.altDrafts=new Map();this.selectedNode=null;
         const generation=++this.generation;$('#semantic-content').replaceChildren();$('#semantic-status').textContent='Mapping tags and preparing text proposals…';$('#repair-status').textContent='New source loaded. Its repair queue is empty.';$('#semantic-retry').hidden=true;this.renderQueue();
         try {
             const data=await(await this.deps.checkedFetch(`/api/documents/${doc.snapshot.id}/semantics`)).json();
             if(generation!==this.generation)return;this.data=data;this.members=new Map(data.structure.regions.map(m=>[m.region.id,m]));
             $('#semantic-status').textContent=`${data.structure.nodes.length} structure elements · ${data.structure.regions.filter(r=>r.status==='TAGGED').length} tagged observations · ${data.proposals.length} text proposals`;
             this.render();this.deps.refresh();
-        }catch(error){if(generation===this.generation){$('#semantic-status').textContent=error.message;$('#semantic-retry').hidden=false;}}
+        }catch(error){if(generation===this.generation){$('#semantic-status').textContent=error.message;$('#semantic-retry').hidden=false;this.deps.semanticUnavailable?.();}}
     }
     status(id) {return this.members?.get(id)?.status || 'NOT_EVALUATED';}
     describe(id) {const m=this.members?.get(id);return m?`${m.status.toLowerCase().replaceAll('_',' ')}${m.role?' · '+m.role:''}. ${m.reason}`:'Semantic review is loading or unavailable.';}
@@ -42,26 +43,28 @@ export class Portfolio {
         const {nodes,warnings}=this.data.structure;
         const parents=nodes.filter(n=>n.appendEligible);
         const tree=n=>`<li><button type="button" class="secondary" data-node="${n.id}">${esc(this.label(n.id))}</button><span class="muted">${n.locations.length} observations${n.issues.length?' · unresolved references':''}</span>${n.childIds.length?`<ul>${n.childIds.map(id=>tree(this.node(id))).join('')}</ul>`:''}</li>`;
-        $('#semantic-content').innerHTML=`<div class="semantic-grid"><section aria-label="Tag tree"><h3>Tags and figures</h3>
+        $('#semantic-content').innerHTML=`<div class="semantic-grid"><section aria-label="Tag tree" data-workspace-views="tags"><h3>Tags and figures</h3>
             <p>Choose a tag to inspect its content. Its page locations are linked to the viewer.</p>
             <ul class="tag-list">${nodes.filter(n=>n.parentId==='root').map(tree).join('') || '<li>No structure children. Accepted proposals can create a new Document when no root exists.</li>'}</ul><div id="node-details"></div></section>
-            <section aria-label="Reading order editor"><h3>Reading order</h3><p>Move existing siblings within their parent. All children must remain in the sequence.</p>
+            <section aria-label="Reading order editor" data-workspace-views="order"><h3>Reading order</h3><p>Move existing siblings within their parent. All children must remain in the sequence.</p>
             <label for="order-parent">Parent to reorder</label><select id="order-parent">${nodes.filter(n=>n.reorderable).map(n=>`<option value="${n.id}">${esc(this.label(n.id))}</option>`).join('') || '<option value="">No editable sibling groups</option>'}</select><div id="order-list"></div></section></div>
-            <details><summary>Mapping coverage and unresolved references</summary><ul>${warnings.map(w=>`<li>${esc(w)}</li>`).join('')}${nodes.flatMap(n=>n.issues.map(i=>`<li>${esc(this.label(n.id))}: ${esc(i)}</li>`)).join('')}</ul></details>
-            <section aria-label="Tagging proposals"><h3>Explainable tagging proposals</h3><p>Scores describe rule strength, not a calibrated probability. Review the role and content before queueing it.</p>
+            <details data-workspace-views="overview"><summary>Mapping coverage and unresolved references</summary><ul>${warnings.map(w=>`<li>${esc(w)}</li>`).join('')}${nodes.flatMap(n=>n.issues.map(i=>`<li>${esc(this.label(n.id))}: ${esc(i)}</li>`)).join('')}</ul></details>
+            <section aria-label="Tagging proposals" data-workspace-views="suggestions"><h3>Suggested text roles</h3><p>Check each suggestion against the page. Choose a role, then add it to your changes.</p>
             <label for="tag-parent">Parent for accepted tags</label><select id="tag-parent">${parents.map(n=>`<option value="${n.id}">${esc(this.label(n.id))} — append as last child</option>`).join('') || (nodes.length?'<option value="">No supported parent; writing unavailable</option>':'<option value="auto">Create Document structure</option>')}</select>
             <div class="proposal-list">${this.data.proposals.map(p=>`<article class="proposal"><h4>${esc(p.text)}</h4><p>Page ${p.pageNumber} · Heuristic score ${Math.round(p.heuristicScore*100)}/100</p><ul>${p.reasons.map(r=>`<li>${esc(r)}</li>`).join('')}</ul>
             <label for="role-${p.id}">Role for ${esc(p.id)}</label><select id="role-${p.id}">${['H1','H2','H3','P','LI','Caption'].map(r=>`<option ${r===p.role?'selected':''}>${r}</option>`).join('')}</select>
             <button type="button" class="secondary" data-locate-proposal="${p.id}">Show proposal on page</button> <button type="button" data-accept-tag="${p.id}">Accept and queue tag</button></article>`).join('') || '<p>No eligible untagged text groups were found.</p>'}</div></section>
-            <section aria-label="Metadata repair queue"><h3>Metadata in this export</h3><label for="transaction-language">Document language</label><input id="transaction-language" value="${esc(this.doc.snapshot.analysis.language||'')}" placeholder="en-US"><button type="button" data-queue-language>Queue language</button> <button type="button" class="secondary" data-queue-title>Queue display of existing title</button></section>`;
+            <section aria-label="Metadata repair queue" data-workspace-views="overview"><h3>Document settings</h3><label for="transaction-language">Document language</label><input id="transaction-language" value="${esc(this.doc.snapshot.analysis.language||'')}" placeholder="en-US"><button type="button" data-queue-language>Queue language</button> <button type="button" class="secondary" data-queue-title>Queue display of existing title</button></section>`;
         this.renderOrder();this.selectNode(nodes.find(n=>n.altEditable)?.id || nodes.find(n=>n.id!=='root')?.id);
+        this.deps.updateWorkspace?.(this.data,this.queue);
     }
     selectNode(id) {
         this.selectedNode=id;const node=this.node(id);if(!node){$('#node-details').replaceChildren();return;}
         $('#node-details').innerHTML=`<h4>${esc(this.label(id))}</h4><p>${esc(this.text(node))}</p><p>${node.locations.length} mapped page observation(s).</p>
             <button type="button" class="secondary" data-locate-node="${id}" ${node.locations.length?'':'disabled'}>Show tag on page</button>
-            ${node.role==='Figure'?`<p>Current alternative text: ${esc(node.altText||'Missing')}</p><label for="figure-alt">Alternative text for ${esc(this.label(id))}</label><textarea id="figure-alt" maxlength="2000" ${node.altEditable?'':'disabled'}>${esc(this.queue.items.get('ALT_TEXT:'+id)?.value??node.altText??'')}</textarea><button type="button" data-queue-alt="${id}" ${node.altEditable?'':'disabled'}>Queue alternative text</button>`:''}
+            ${node.role==='Figure'?`<p>Current alternative text: ${esc(node.altText||'Missing')}</p><label for="figure-alt">Alternative text for ${esc(this.label(id))}</label><textarea id="figure-alt" maxlength="2000" ${node.altEditable?'':'disabled'}>${esc(this.altDrafts.get(id)??this.queue.items.get('ALT_TEXT:'+id)?.value??node.altText??'')}</textarea><button type="button" data-queue-alt="${id}" ${node.altEditable?'':'disabled'}>Queue alternative text</button>`:''}
             ${node.issues.map(i=>`<p class="muted">${esc(i)}</p>`).join('')}`;
+        document.querySelectorAll('[data-node]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.node===id)));
     }
     focusRegion(id) {
         let node=this.node(this.members.get(id)?.nodeId);if(!node)return;
@@ -82,13 +85,13 @@ export class Portfolio {
     async action(event) {
         const button=event.target.closest('button');if(!button || this.deps.isBusy())return;const d=button.dataset;
         try {
-            if(d.node)this.selectNode(d.node);
+            if(d.node){this.selectNode(d.node);await this.deps.locate(this.node(d.node).locations);}
             if(d.locateNode)await this.deps.locate(this.node(d.locateNode).locations);
             if(d.locateProposal){const p=this.data.proposals.find(p=>p.id===d.locateProposal);await this.deps.locate(p.regionIds.map(id=>({pageNumber:p.pageNumber,regionId:id})));}
             if(d.queueAlt){const value=$('#figure-alt').value.trim();if(!value)throw new Error('Enter meaningful alternative text before queueing.');this.put({kind:'ALT_TEXT',targetId:d.queueAlt,value});}
             if(d.orderId){const parent=$('#order-parent').value;this.orders.set(parent,moveSibling(this.orders.get(parent),d.orderId,Number(d.orderDelta)));this.renderOrder(d.orderId);$('#repair-status').textContent=`Moved ${this.label(d.orderId)}. Queue the order to include it in the export.`;}
             if(d.queueOrder)this.put({kind:'READING_ORDER',targetId:d.queueOrder,order:this.orders.get(d.queueOrder)});
-            if(d.acceptTag)this.put({kind:'TAG_TEXT',targetId:d.acceptTag,value:$(`#role-${d.acceptTag}`).value,parentId:$('#tag-parent').value});
+            if(d.acceptTag){this.put({kind:'TAG_TEXT',targetId:d.acceptTag,value:$(`#role-${d.acceptTag}`).value,parentId:$('#tag-parent').value});button.textContent='Update queued tag';button.classList.add('is-queued');}
             if('queueLanguage' in d)this.put({kind:'LANGUAGE',targetId:'document',value:$('#transaction-language').value.trim()});
             if('queueTitle' in d)this.put({kind:'DISPLAY_TITLE',targetId:'document'});
         }catch(error){$('#repair-status').textContent=error.message;}
@@ -96,6 +99,8 @@ export class Portfolio {
     renderQueue() {
         $('#repair-queue').innerHTML=[...this.queue.items].map(([key,op])=>`<li><strong>${esc(names[op.kind])}</strong> · ${esc(op.targetId)}<p>${esc(op.value??op.order?.map(id=>this.label(id)).join(' → ')??'Apply selected repair')}</p><button type="button" class="secondary" data-remove-repair="${esc(key)}">Remove ${esc(names[op.kind])}</button></li>`).join('') || '<li>No repairs queued. Select a figure, accept a text proposal, or queue a reading order.</li>';
         $('#repair-count').textContent=`${this.queue.items.size} / 25 repairs queued for this source.`;$('#repair-undo').disabled=!this.queue.history.length;$('#verify-transaction').disabled=!this.queue.items.size;
+        this.deps.updateWorkspace?.(this.data,this.queue);
+        document.querySelectorAll('[data-accept-tag]').forEach(button=>{const queued=this.queue.items.has('TAG_TEXT:'+button.dataset.acceptTag);button.textContent=queued?'Update queued tag':'Accept and queue tag';button.classList.toggle('is-queued',queued);});
     }
     async export() {
         if(this.deps.isBusy() || !this.queue.items.size)return;const doc=this.doc,request=this.queue.request(),reviewPlan=doc.review.report();this.deps.setBusy(true);$('#verify-transaction').disabled=true;$('#repair-status').textContent='Applying queued repairs and verifying all pages…';
@@ -105,6 +110,7 @@ export class Portfolio {
             const entry={pdf:blob(result.pdf,'application/pdf'),filename:result.evidence.outputFilename,sourceType:doc.snapshot.sourceType,evidence:{...result.evidence,request,reviewPlan},previews:result.previews};
             entry.pdfUrl=this.deps.objectUrl(entry.pdf);entry.recordUrl=this.deps.jsonUrl(entry.evidence);entry.previews=entry.previews.map(p=>({pageNumber:p.pageNumber,before:this.deps.objectUrl(blob(p.before,'image/png')),after:this.deps.objectUrl(blob(p.after,'image/png'))}));
             this.exports.unshift(entry);this.renderExports();$('#repair-status').textContent=`Verified ${result.evidence.appliedActions.length} repairs across ${result.evidence.pagesVerified} page(s). Downloads are ready.`;
+            this.deps.showExport?.();
             $('#transaction-history').scrollIntoView({block:'start',behavior:'smooth'});$('#transaction-history a')?.focus({preventScroll:true});
         }catch(error){$('#repair-status').textContent=error.message;}
         finally{this.deps.setBusy(false);this.renderQueue();}

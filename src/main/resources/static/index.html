@@ -4,12 +4,13 @@
     <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <title>PDF Accessibility Assistant · Review workbench</title>
     <link rel="stylesheet" href="./workbench.css">
+    <link rel="stylesheet" href="./workspace.css">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to workbench</a>
-<header class="app-header"><div><span class="eyebrow">PDF ACCESSIBILITY ASSISTANT</span><h1>Review workbench</h1></div><span class="local-badge">Local session</span></header>
+<header class="app-header"><div class="brand"><span class="brand-mark" aria-hidden="true">P</span><div><h1>PDF Accessibility Assistant</h1><span class="brand-caption">Document review studio</span></div></div><div class="header-actions"><span class="local-badge">Local session</span><button id="open-benchmark" type="button" class="secondary">Benchmark</button><button id="open-document" type="button" class="secondary" hidden>Open PDF</button></div></header>
 <main id="main">
-    <p class="intro">Inspect the page, review its content, and apply supported repairs.</p>
+    <div id="welcome"><span class="eyebrow">A CLEARER PATH TO ACCESSIBLE DOCUMENTS</span><h2>Make your PDF easier<br>for everyone to read.</h2><p class="intro">Open a document. Review it visually. Apply the changes you choose.</p><div class="welcome-steps"><span>01 &nbsp; Find what needs attention</span><span>02 &nbsp; Review and repair</span><span>03 &nbsp; Export your copy</span></div></div>
     <div id="file-mode" class="notice" hidden>This app needs its local server. Open <a href="http://localhost:8080/">the running app</a> instead of this HTML file.</div>
     <section class="upload-card" aria-label="Open a document">
         <form id="upload-form">
@@ -19,13 +20,15 @@
         </form>
         <div class="demo-actions"><button type="button" class="secondary" data-demo="semantic">Load tagged demo</button><button type="button" class="secondary" data-demo="untagged">Load untagged demo</button></div>
         <p class="muted">Public or synthetic PDFs, up to 10 MB. Review plans live in this tab until reload; download a report to keep them.</p>
-        <p id="status" role="status" aria-live="polite">Choose a PDF to begin.</p>
     </section>
+    <p id="status" role="status" aria-live="polite">Choose a PDF to begin.</p>
     <section id="result" hidden>
-        <div class="document-header"><div><span class="eyebrow">ORIGINAL DOCUMENT</span><h2 id="document-name"></h2><p id="document-summary"></p></div><div><button id="download-report" type="button" class="secondary">Prepare review report</button><div id="report-download"></div></div></div>
+        <div class="document-header"><div><span class="eyebrow">CURRENT DOCUMENT</span><h2 id="document-name"></h2><p id="document-summary"></p></div><button id="review-changes" type="button">Review changes <span id="header-repair-count">0</span></button></div>
+        <div id="report-controls"><button id="download-report" type="button" class="secondary">Prepare review report</button><div id="report-download"></div></div>
         <details id="report-details" hidden><summary>Preview prepared review report</summary><p class="muted">This is a snapshot. Prepare a new report after further review changes.</p><pre id="report-preview"></pre></details>
         <details class="findings-panel"><summary id="findings-summary">Document findings</summary><div id="findings"></div><p class="muted">These document-level findings do not identify a specific page object.</p></details>
         <section class="workspace" aria-label="Page content review">
+            <nav id="workflow-nav" aria-label="Review tasks"></nav>
             <div class="viewer">
                 <div class="viewer-toolbar">
                     <button id="previous-page" class="secondary" type="button" aria-label="Previous page">←</button>
@@ -66,6 +69,7 @@
     <section class="export-panel" aria-labelledby="benchmark-heading"><h2 id="benchmark-heading">Measured tagging benchmark</h2><p>Run two reproducible synthetic documents with 14 labeled text groups. This is a small regression benchmark, not evidence of superiority over another product.</p><div class="repair-links"><a href="/api/benchmarks/samples/1" download>Download benchmark PDF 1</a><a href="/api/benchmarks/samples/2" download>Download benchmark PDF 2</a></div><button id="run-benchmark" type="button">Run benchmark</button><label for="comparison-file">Import aligned comparison predictions (JSON)</label><input id="comparison-file" type="file" accept="application/json,.json"><p id="benchmark-status" role="status"></p><div id="benchmark-results"></div></section>
     <footer>Bounded observations and human review. This assistant does not establish PAC, PDF/UA, WCAG, Section 508, or legal compliance. No document content is sent to an AI provider.</footer>
 </main>
+<dialog id="benchmark-dialog" aria-labelledby="benchmark-heading"><form method="dialog"><button type="submit" class="secondary">Close benchmark</button></form><div id="benchmark-body"></div></dialog>
 <script type="module" src="./app.js"></script>
 <script>if (location.protocol === 'file:') document.querySelector('#file-mode').hidden = false;</script>
 </body>
