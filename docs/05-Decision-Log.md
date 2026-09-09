@@ -113,6 +113,14 @@ Use this log for choices that affect scope, safety, architecture, or claims. Rec
 - **Evidence:** [Artifact Repair Plan and Evidence](18-Artifact-Repair-Plan-and-Evidence.md), including rotations, preserved tag/parent trees and shared streams, duplicate-artifact refusal, failure injection, and independent rendered-image/text comparisons.
 - **Limits:** No bulk writing, text deletion/artifacting, figure mutation, title writing or autotagging. Existing marked content and nested forms are excluded. Inline-image pages are excluded after a serialization-preservation test failed. Every successful export supplies its source/output hashes, target, note and verification record.
 
+### D-016 — Enable reviewed semantic repairs and combined transactions
+
+- **Status:** Accepted on 2026-09-09 under the owner's request to plan and implement the portfolio features.
+- **Decision:** Add supported direct-page structure/parent-tree mapping, reviewer-written Figure alt text, accepted layout-rule text tags, complete sibling-order changes, and combined transactions with separately approved path artifacts and metadata. Preserve original bytes and release derivatives only after save/reopen, graph, all-page text and preview checks.
+- **Evidence:** [Semantic Portfolio Release](19-Semantic-Portfolio-Release.md), Java/state/browser coverage, measured synthetic errors, and independent Poppler render/text comparisons. The PDF verification workflow required temporary derivative inspection before this evidence gate was recorded.
+- **Limits:** Supported references and bounded documents only; unresolved structure blocks semantic writes. No unrestricted tree surgery, OCR, text deletion, automatic figure artifacting, title writing, external AI, compliance certification or Acrobat-superiority claim. Human-reviewed proposals are not an automatic-fix allowlist. New tags and reordering their parent require separate exports.
+- **Consequence:** Extends the D-014/D-015 implementation boundary without rewriting their historical scope. Benchmark results are versioned regression evidence, not representative accuracy estimates.
+
 ## Assumptions
 
 - Decisions marked “accepted for V1” may be revisited after evidence changes.

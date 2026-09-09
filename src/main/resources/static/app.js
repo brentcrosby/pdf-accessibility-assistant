@@ -1,5 +1,6 @@
 import {ReviewSession, decisionLabels, filterRegions} from './review-state.mjs';
 import {ArtifactRepairs} from './artifact-repair.mjs';
+import {Portfolio} from './portfolio.mjs';
 
 const $ = selector => document.querySelector(selector);
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
@@ -11,13 +12,29 @@ let view;
 let exportBusy = false;
 let preparedReportUrl;
 const repairs = new ArtifactRepairs({context:()=>current, checkedFetch, objectUrl, jsonUrl,
-    isBusy:()=>exportBusy, setBusy:busy=>{ exportBusy = busy; $('#export').disabled = busy; $('#submit').disabled = busy; },
-    continueWith:async entry=>{
+    isBusy:()=>exportBusy, setBusy, continueWith});
+const portfolio = new Portfolio({checkedFetch,objectUrl,jsonUrl,isBusy:()=>exportBusy,setBusy,continueWith,
+    refresh:()=>view?.render(),locate:async locations=>{
+        if(!locations.length || !view)return;
+        const page=locations[0].pageNumber;
+        $('#kind').value='ALL';$('#review-filter').value='ALL';$('#semantic-filter').value='ALL';$('#search').value='';
+        if(view.number!==page || !view.page)await view.load(page);
+        view.selected=new Set(locations.filter(l=>l.pageNumber===page).map(l=>l.regionId));view.focused=locations[0].regionId;view.render();
+        $('#page-scroll').scrollIntoView({block:'center'});$('#page-scroll').focus({preventScroll:true});
+        announce(`Showing ${view.selected.size} mapped observations on page ${page}.`);
+    }});
+function setBusy(busy){exportBusy=busy;$('#export').disabled=busy;$('#submit').disabled=busy;document.querySelectorAll('[data-demo]').forEach(b=>b.disabled=busy);}
+async function continueWith(entry){
         const form = new FormData(); form.append('file',entry.pdf,entry.filename); form.append('sourceType',entry.sourceType || 'SYNTHETIC');
         const snapshot = await (await checkedFetch('/api/documents',{method:'POST',body:form})).json();
         view?.dispose(); current = {snapshot,review:new ReviewSession(snapshot)}; showDocument();
-        await view.load(entry.evidence.region.pageNumber); $('#result').scrollIntoView({block:'start',behavior:'smooth'});
-    }});
+        await view.load(entry.evidence.region?.pageNumber || entry.previews?.[0]?.pageNumber || 1); $('#result').scrollIntoView({block:'start'});
+}
+document.querySelectorAll('[data-demo]').forEach(button=>button.addEventListener('click',async()=>{
+    if(exportBusy)return;setBusy(true);announce('Loading synthetic demo…');
+    try{const snapshot=await(await checkedFetch(`/api/demos/${button.dataset.demo}`,{method:'POST'})).json();view?.dispose();current={snapshot,review:new ReviewSession(snapshot)};showDocument();await view.load(1);}
+    catch(error){announce(error.message);}finally{setBusy(false);}
+}));
 
 function objectUrl(blob) {
     const url = URL.createObjectURL(blob);
@@ -48,7 +65,7 @@ async function checkedFetch(url, options = {}) {
 $('#upload-form').addEventListener('submit', async event => {
     event.preventDefault();
     if (exportBusy) return;
-    $('#submit').disabled = true;
+    setBusy(true);
     view?.dispose();
     $('#result').hidden = true;
     announce('Analyzing PDF…');
@@ -61,7 +78,7 @@ $('#upload-form').addEventListener('submit', async event => {
         await view.load(1);
     } catch (error) {
         announce(error.message || 'The local server could not be reached.');
-    } finally { $('#submit').disabled = false; }
+    } finally { setBusy(false); }
 });
 
 function showDocument() {
@@ -76,6 +93,7 @@ function showDocument() {
     $('#report-download').replaceChildren(); $('#report-details').hidden = true; $('#report-preview').textContent = '';
     showFindings();
     view = new Workbench(current);
+    portfolio.open(current);
 }
 
 function showFindings() {
@@ -121,7 +139,7 @@ class Workbench {
         const on = (selector, event, fn) => $(selector).addEventListener(event, fn, {signal:this.events.signal});
         $('#page-number').max = doc.snapshot.analysis.pageCount;
         $('#page-total').textContent = `/ ${doc.snapshot.analysis.pageCount}`;
-        $('#kind').value = 'ALL'; $('#review-filter').value = 'ALL'; $('#search').value = ''; $('#zoom').value = '1';
+        $('#kind').value = 'ALL'; $('#review-filter').value = 'ALL'; $('#semantic-filter').value='ALL'; $('#search').value = ''; $('#zoom').value = '1';
         $('#show-overlays').checked = true;
         $('#page-canvas').style.width = '100%';
         on('#next-page', 'click', () => this.load(this.number + 1));
@@ -129,12 +147,13 @@ class Workbench {
         on('#page-number', 'change', () => this.load(Number($('#page-number').value)));
         on('#zoom', 'change', () => { $('#page-canvas').style.width = `${Number($('#zoom').value) * 100}%`; });
         on('#show-overlays', 'change', () => this.renderRegions());
-        for (const selector of ['#kind', '#review-filter', '#search']) on(selector, selector === '#search' ? 'input' : 'change', () => {
+        for (const selector of ['#kind', '#review-filter', '#semantic-filter', '#search']) on(selector, selector === '#search' ? 'input' : 'change', () => {
             this.selected.clear(); this.focused = null; this.render();
         });
         on('#select-visible', 'click', () => { this.selected = new Set(this.visible().map(r => r.id)); this.render(); });
         on('#clear-selection', 'click', () => { this.selected.clear(); this.focused = null; this.render(); });
         on('#reset-filters', 'click', () => {
+            $('#semantic-filter').value='ALL';
             $('#kind').value = 'ALL'; $('#review-filter').value = 'ALL'; $('#search').value = '';
             this.selected.clear(); this.focused = null; this.render();
         });
@@ -160,9 +179,15 @@ class Workbench {
             announce(`${decisionLabels[decision]} recorded for ${count} region(s). PDF unchanged.`);
         });
         on('#selected-region', 'input', event => {
+            if(event.target.id==='confirm-queued-artifact')$('#queue-artifact').disabled=!event.target.checked;
             if (event.target.id === 'region-note') this.drafts.set(this.focused, event.target.value);
         });
         on('#selected-region', 'click', event => {
+            if(event.target.id==='queue-artifact'){
+                const region=this.page?.regions.find(r=>r.id===this.focused);
+                if(!exportBusy && region && this.selected.size===1 && this.selected.has(region.id) && $('#confirm-queued-artifact')?.checked)portfolio.queueArtifact(region);
+                return;
+            }
             if (event.target.id === 'prepare-artifact') {
                 const region = this.page?.regions.find(r=>r.id === this.focused);
                 if (region && this.selected.size === 1 && this.selected.has(region.id)) repairs.prepare(region,this.page);
@@ -234,11 +259,12 @@ class Workbench {
     }
 
     visible() {
-        return filterRegions(this.page?.regions || [], {kind:$('#kind').value, search:$('#search').value, status:$('#review-filter').value}, this.session.decisions);
+        return filterRegions(this.page?.regions || [], {kind:$('#kind').value, search:$('#search').value, status:$('#review-filter').value}, this.session.decisions).filter(r=>$('#semantic-filter').value==='ALL' || portfolio.status(r.id)===$('#semantic-filter').value);
     }
 
     select(id, fromList) {
         this.focused = id; this.selected = new Set([id]); this.render();
+        if(portfolio.data)portfolio.focusRegion(id);
         $('#region-list').querySelector(`[data-region="${id}"]`)?.focus({preventScroll:true});
         if (fromList) $('#overlays').querySelector(`[data-region="${id}"]`)?.scrollIntoView({block:'nearest', inline:'nearest'});
     }
@@ -270,11 +296,12 @@ class Workbench {
         const entry = this.session.decisions.get(region.id);
         const note = this.drafts.get(region.id) ?? entry?.note ?? '';
         $('#selected-region').innerHTML = `<h3>${escape(region.kind)} · ${escape(region.id)}</h3><p>${escape(region.text)}</p>
-            <p>Bounds: ${escape(region.geometryQuality.toLowerCase().replaceAll('_',' '))}. Tagging: not evaluated.</p>
+            <p>Bounds: ${escape(region.geometryQuality.toLowerCase().replaceAll('_',' '))}. Membership: ${escape(portfolio.describe(region.id))}</p>
             ${region.kind === 'IMAGE' ? '<p>An image observation does not establish a semantic figure or missing alt text.</p>' : ''}
             ${region.unmappedGlyphs ? `<p>${region.unmappedGlyphs} glyph(s) have no Unicode mapping. This is a diagnostic signal, not a deletion recommendation.</p>` : ''}
             <p>Decision: ${escape(decisionLabels[entry?.decision] || 'Unreviewed')}</p>
             ${region.kind === 'PATH' ? `<button id="prepare-artifact" type="button" ${this.selected.size === 1 && this.selected.has(region.id) ? '' : 'disabled'}>Prepare artifact repair</button><p class="muted">Check whether this path can be repaired and exported. Select one path at a time.</p>` : ''}
+            ${region.kind==='PATH' && portfolio.status(region.id)==='UNTAGGED' && this.selected.size===1 && this.selected.has(region.id)?'<label class="check-label"><input type="checkbox" id="confirm-queued-artifact"> I reviewed this path and confirm it is decorative, not meaningful content.</label><button id="queue-artifact" type="button" disabled>Queue artifact repair</button>':''}
             <label for="region-note">Review note (up to 1,000 characters)</label><textarea id="region-note" maxlength="1000">${escape(note)}</textarea><button id="save-note" type="button" class="secondary">Save note</button><p class="muted">Saving a note on an unreviewed region adds it to the queue as deferred.</p>`;
     }
 

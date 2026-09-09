@@ -24,4 +24,8 @@ jobs:
         with:
           node-version: '22'
       - name: Review-state tests
-        run: node --test src/test/js/*.test.mjs
+        run: npm ci && npm test
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+      - name: Browser workflows and accessibility checks
+        run: npm run test:browser

@@ -22,7 +22,7 @@ final class PdfPreservationDigest {
         catch (NoSuchAlgorithmException ex) { throw new IllegalStateException(ex); }
     }
     static String of(PDDocument doc, int pageNumber) throws IOException {
-        var state = new PdfPreservationDigest(doc.getPage(pageNumber-1).getCOSObject());
+        var state = new PdfPreservationDigest(pageNumber == 0 ? null : doc.getPage(pageNumber-1).getCOSObject());
         state.visit(doc.getDocumentCatalog().getCOSObject(),0);
         state.visit(doc.getDocument().getTrailer().getDictionaryObject(COSName.INFO),0);
         return HexFormat.of().formatHex(state.digest.digest());

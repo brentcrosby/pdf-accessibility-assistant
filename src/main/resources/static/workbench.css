@@ -33,4 +33,24 @@ details { margin: 12px 0; } summary { cursor: pointer; font-weight: 600; } #page
 .repair-comparison img { width: 100%; border: 1px solid #c7d3df; }
 .repair-comparison figcaption { margin: 8px 0; font-weight: 600; }
 #artifact-form textarea { display: block; max-width: 650px; margin-bottom: 14px; }
+.demo-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+.semantic-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:28px; }
+.semantic-grid section { min-width:0; }
+.tag-list { padding-left:22px; max-height:340px; overflow:auto; }
+.tag-list li, #order-list li, #repair-queue li { margin:12px 0; overflow-wrap:anywhere; }
+.tag-list span { display:block; margin-top:5px; }
+#order-list button { margin:6px 4px 0 0; }
+#semantic-content textarea { min-height:100px; margin-bottom:10px; }
+.proposal-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr)); gap:16px; }
+.proposal { padding:16px; border:1px solid #bac7d2; border-radius:8px; overflow-wrap:anywhere; }
+.proposal h4 { margin:0 0 8px; font-size:16px; }.proposal button { margin-top:10px; }
+#semantic-content > section { margin-top:24px; }
+#transaction-language { max-width:260px; display:block; margin-bottom:10px; }
+#comparison-file { max-width:440px; display:block; }
+#benchmark-results { overflow:auto; } table { border-collapse:collapse; margin:18px 0; width:100%; font-size:14px; }
+caption { text-align:left; font-weight:700; padding-bottom:10px; } th,td { text-align:left; padding:10px; border-bottom:1px solid #bac7d2; } th { background:#f3f5f7; }
+button, a, summary { scroll-margin:16px; }
+@media(max-width:760px) { .semantic-grid { grid-template-columns:1fr; } }
+@media(prefers-reduced-motion:reduce) { *, *::before, *::after { scroll-behavior:auto !important; animation:none !important; transition:none !important; } }
+@media(forced-colors:active) { .overlay { border-color:CanvasText; }.overlay[aria-pressed=true] { border:3px solid Highlight; }.region-link[aria-pressed=true] { outline:2px solid Highlight; }:focus-visible { outline:3px solid Highlight; } button:disabled { opacity:1; color:GrayText; } }
 @media(max-width: 760px) { .repair-comparison { grid-template-columns: 1fr; } }
