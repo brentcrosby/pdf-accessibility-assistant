@@ -1,148 +1,66 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>PDF Accessibility Assistant</title>
-    <style>
-        :root { font-family: system-ui, sans-serif; color: #172033; background: #f4f7fb; }
-        body { margin: 0; }
-        main { max-width: 760px; margin: 0 auto; padding: 3rem 1.25rem; }
-        h1 { margin-bottom: .25rem; }
-        .notice, form, #result { background: white; border: 1px solid #d8e0ec; border-radius: .75rem; padding: 1.25rem; margin: 1rem 0; }
-        .notice { border-left: .35rem solid #3559a6; }
-        label { display: block; font-weight: 650; margin-top: .8rem; }
-        input, select, button { font: inherit; margin-top: .35rem; }
-        input, select { width: 100%; box-sizing: border-box; padding: .6rem; }
-        button { border: 0; border-radius: .4rem; padding: .65rem 1rem; color: white; background: #1f4b99; cursor: pointer; }
-        button:disabled { opacity: .6; cursor: wait; }
-        #status { min-height: 1.5rem; }
-        .issue { border-top: 1px solid #e7ebf2; padding: .8rem 0; }
-        .tag { display: inline-block; border-radius: 99px; padding: .18rem .55rem; background: #e6eefc; color: #173e81; font-size: .82rem; }
-        pre { overflow: auto; background: #f7f9fc; padding: .8rem; border-radius: .35rem; }
-    </style>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PDF Accessibility Assistant · Review workbench</title>
+    <link rel="stylesheet" href="./workbench.css">
 </head>
 <body>
-<main>
-    <h1>PDF Accessibility Assistant</h1>
-    <p>Upload a public or synthetic PDF for a bounded metadata and tagging-state check.</p>
-    <section class="notice">
-        This is a remediation assistant, not a guarantee of PAC, PDF/UA, WCAG, Section 508, or legal compliance. Do not upload workplace or sensitive PDFs without explicit approval.
+<a class="skip-link" href="#main">Skip to workbench</a>
+<header class="app-header"><div><span class="eyebrow">PDF ACCESSIBILITY ASSISTANT</span><h1>Review workbench</h1></div><span class="local-badge">Local session</span></header>
+<main id="main">
+    <p class="intro">Inspect the page, review its content, and apply supported repairs.</p>
+    <div id="file-mode" class="notice" hidden>This app needs its local server. Open <a href="http://localhost:8080/">the running app</a> instead of this HTML file.</div>
+    <section class="upload-card" aria-label="Open a document">
+        <form id="upload-form">
+            <div><label for="file">PDF file</label><input id="file" name="file" type="file" accept="application/pdf,.pdf" required></div>
+            <div><label for="sourceType">Source type</label><select id="sourceType" name="sourceType"><option value="SYNTHETIC">Synthetic PDF</option><option value="PUBLIC">Public PDF</option></select></div>
+            <button id="submit" type="submit">Analyze PDF</button>
+        </form>
+        <p class="muted">Public or synthetic PDFs, up to 10 MB. Review plans live in this tab until reload; download a report to keep them.</p>
+        <p id="status" role="status" aria-live="polite">Choose a PDF to begin.</p>
     </section>
-    <form id="upload-form">
-        <label for="file">PDF file</label>
-        <input id="file" name="file" type="file" accept="application/pdf,.pdf" required>
-        <label for="sourceType">Source type</label>
-        <select id="sourceType" name="sourceType" required>
-            <option value="PUBLIC">Public PDF</option>
-            <option value="SYNTHETIC">Synthetic PDF</option>
-        </select>
-        <p><button id="submit" type="submit">Analyze PDF</button></p>
-        <div id="status" role="status" aria-live="polite"></div>
-    </form>
-    <section id="result" hidden aria-live="polite"></section>
+    <section id="result" hidden>
+        <div class="document-header"><div><span class="eyebrow">ORIGINAL DOCUMENT</span><h2 id="document-name"></h2><p id="document-summary"></p></div><div><button id="download-report" type="button" class="secondary">Prepare review report</button><div id="report-download"></div></div></div>
+        <details id="report-details" hidden><summary>Preview prepared review report</summary><p class="muted">This is a snapshot. Prepare a new report after further review changes.</p><pre id="report-preview"></pre></details>
+        <details class="findings-panel"><summary id="findings-summary">Document findings</summary><div id="findings"></div><p class="muted">These document-level findings do not identify a specific page object.</p></details>
+        <section class="workspace" aria-label="Page content review">
+            <div class="viewer">
+                <div class="viewer-toolbar">
+                    <button id="previous-page" class="secondary" type="button" aria-label="Previous page">←</button>
+                    <label for="page-number">Page</label><input id="page-number" type="number" min="1" value="1"><span id="page-total"></span>
+                    <button id="next-page" class="secondary" type="button" aria-label="Next page">→</button>
+                    <label for="zoom">Zoom</label><select id="zoom"><option value="1">Fit width</option><option value="1.5">150%</option><option value="2">200%</option><option value="3">300%</option></select>
+                    <label class="check-label"><input id="show-overlays" type="checkbox" checked> Overlays</label>
+                </div>
+                <p id="page-status" role="status" aria-live="polite"></p>
+                <div id="page-scroll" class="page-scroll" tabindex="0" aria-label="Scrollable PDF page preview"><div id="page-canvas" class="page-canvas"><img id="page-image" alt=""><div id="overlays"></div></div></div>
+                <p class="legend"><span class="text-key">Text</span><span class="image-key">Images</span><span class="path-key">Paths</span><span>Selected region: blue</span></p>
+            </div>
+            <aside class="review-panel" aria-label="Region inspector">
+                <h2>Page content</h2><p class="muted">Observed content, not confirmed accessibility errors. Select a region to inspect it.</p>
+                <div class="filters"><div><label for="kind">Content type</label><select id="kind"><option value="ALL">All content</option><option value="TEXT">Text</option><option value="IMAGE">Images</option><option value="PATH">Paths</option></select></div>
+                    <div><label for="review-filter">Review status</label><select id="review-filter"><option value="ALL">All statuses</option><option value="UNREVIEWED">Unreviewed</option><option value="ARTIFACT_CANDIDATE">Artifact candidate</option><option value="KEEP_AS_CONTENT">Keep as content</option><option value="DEFER">Deferred</option><option value="UNMAPPED">Unmapped glyphs</option></select></div></div>
+                <label for="search">Search this page</label><input id="search" type="search" placeholder="Text or region ID">
+                <p id="region-count" class="muted" role="status"></p>
+                <div class="batch-toolbar"><button id="select-visible" type="button" class="secondary">Select visible</button><button id="clear-selection" type="button" class="secondary">Clear selection</button><button id="reset-filters" type="button" class="secondary">Reset filters</button></div>
+                <ul id="region-list" class="region-list" aria-label="Observed regions"></ul>
+                <section id="selected-region" class="selected-region" aria-label="Selected region details"></section>
+                <fieldset id="decisions"><legend id="decision-target">Review selected regions</legend><button type="button" data-decision="KEEP_AS_CONTENT">Keep as content</button><button type="button" data-decision="ARTIFACT_CANDIDATE" class="secondary">Artifact candidate</button><button type="button" data-decision="DEFER" class="secondary">Defer</button></fieldset>
+                <p class="muted">Candidate decisions do not change the PDF. Tag status and figure alt text have not been evaluated.</p>
+                <details><summary>Page coverage and limitations</summary><ul id="page-warnings"></ul></details>
+            </aside>
+        </section>
+        <section class="queue-panel" aria-labelledby="queue-heading"><div class="section-heading"><div><span class="eyebrow">REVIEW PLAN</span><h2 id="queue-heading">Decision queue</h2></div><button id="undo" class="secondary" type="button" disabled>Undo last change</button></div><p id="queue-summary" role="status"></p><ol id="queue"></ol></section>
+        <section id="artifact-panel" class="export-panel" aria-label="Artifact repair" hidden></section>
+        <section class="export-panel"><h2>Apply metadata fixes</h2><p>Export a copy that displays the existing document title and applies an approved language. Open the document findings above to review a missing language. For decorative path repairs, select a path and choose Prepare artifact repair.</p><button id="export" type="button">Apply metadata fixes and export PDF</button><div id="export-result" role="status"></div></section>
+        <details><summary>Source identity</summary><pre id="source-identity"></pre></details>
+    </section>
+    <section id="export-history" hidden></section>
+    <section id="artifact-history" class="export-panel" aria-label="Repair history" hidden></section>
+    <footer>Bounded observations and human review. This assistant does not establish PAC, PDF/UA, WCAG, Section 508, or legal compliance. No document content is sent to an AI provider.</footer>
 </main>
-<script>
-    const form = document.querySelector('#upload-form');
-    const submit = document.querySelector('#submit');
-    const status = document.querySelector('#status');
-    const result = document.querySelector('#result');
-
-    form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        submit.disabled = true;
-        status.textContent = 'Analyzing locally in this session…';
-        result.hidden = true;
-        const data = new FormData(form);
-        try {
-            const response = await fetch('/api/documents', { method: 'POST', body: data });
-            const body = await response.json();
-            if (!response.ok) throw new Error(body.message || 'Upload failed.');
-            showResult(body);
-            status.textContent = 'Analysis complete.';
-        } catch (error) {
-            status.textContent = error.message;
-        } finally {
-            submit.disabled = false;
-        }
-    });
-
-    function showResult(document) {
-        const analysis = document.analysis;
-        const issues = analysis.issues.length
-            ? analysis.issues.map(issue => `${renderIssue(document, issue)}`).join('')
-            : '<p>No bounded V1 issues were detected. This is not a compliance result.</p>';
-        result.innerHTML = `
-            <h2>${escapeHtml(document.originalFilename)}</h2>
-            <p>${analysis.pageCount} page(s) · title: ${escapeHtml(analysis.title || 'missing')} · language: ${escapeHtml(analysis.language || 'missing')}</p>
-            <p>Tagged signals: Marked=${analysis.markedAsTagged}, structure tree=${analysis.structureTreePresent}</p>
-            <h2>Findings</h2>${issues}
-            <p><button id="export" type="button">Export supported remediated copy</button></p>
-            <h2>Session details</h2><pre>${escapeHtml(JSON.stringify({ id: document.id, originalSha256: document.originalSha256 }, null, 2))}</pre>`;
-        result.querySelectorAll('[data-review-form]').forEach(reviewForm => {
-            reviewForm.addEventListener('submit', event => submitReview(event, document.id));
-        });
-        result.querySelector('#export').addEventListener('click', () => exportDocument(document));
-        result.hidden = false;
-    }
-
-    function renderIssue(documentSnapshot, issue) {
-        const recorded = documentSnapshot.recordedReviews[issue.code];
-        const review = issue.requiresHumanValue
-            ? `<form data-review-form data-issue-code="${escapeHtml(issue.code)}">
-                   <label>Reviewed value for ${escapeHtml(issue.code)}
-                       <input name="value" required maxlength="250" value="${escapeHtml(recorded?.value || '')}">
-                   </label>
-                   <p><button name="decision" value="APPROVE" type="submit">Approve value</button>
-                   <button name="decision" value="REJECT" type="submit">Reject</button></p>
-               </form>`
-            : '';
-        const decision = recorded ? `<p>Human review: ${escapeHtml(recorded.decision)}${recorded.value ? ` (${escapeHtml(recorded.value)})` : ''}</p>` : '';
-        return `<article class="issue"><span class="tag">${escapeHtml(issue.disposition)}</span><h3>${escapeHtml(issue.code)}</h3><p>${escapeHtml(issue.message)}</p><p>${escapeHtml(issue.recommendedAction)}</p>${decision}${review}</article>`;
-    }
-
-    async function submitReview(event, documentId) {
-        event.preventDefault();
-        const form = event.currentTarget;
-        const clickedButton = event.submitter;
-        const response = await fetch(`/api/documents/${documentId}/reviews`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                issueCode: form.dataset.issueCode,
-                decision: clickedButton.value,
-                value: form.elements.value.value
-            })
-        });
-        const body = await response.json();
-        if (!response.ok) {
-            status.textContent = body.message || 'Review could not be recorded.';
-            return;
-        }
-        status.textContent = 'Review decision recorded.';
-        showResult(body);
-    }
-
-    async function exportDocument(documentSnapshot) {
-        status.textContent = 'Creating and revalidating a new PDF copy…';
-        const response = await fetch(`/api/documents/${documentSnapshot.id}/export`, { method: 'POST' });
-        if (!response.ok) {
-            const body = await response.json();
-            status.textContent = body.message || 'Export failed.';
-            return;
-        }
-        const download = document.createElement('a');
-        download.href = URL.createObjectURL(await response.blob());
-        download.download = `${documentSnapshot.originalFilename.replace(/\.pdf$/i, '')}-remediated.pdf`;
-        download.click();
-        URL.revokeObjectURL(download.href);
-        const actions = response.headers.get('X-Remediation-Actions') || 'no supported changes';
-        status.textContent = `Export complete: ${actions}.`;
-    }
-
-    function escapeHtml(value) {
-        return String(value).replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
-    }
-</script>
+<script type="module" src="./app.js"></script>
+<script>if (location.protocol === 'file:') document.querySelector('#file-mode').hidden = false;</script>
 </body>
 </html>
