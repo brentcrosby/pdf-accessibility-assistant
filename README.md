@@ -1,6 +1,10 @@
 # PDF Accessibility Assistant
 
-An AI-assisted PDF accessibility remediation tool that separates safe, deterministic metadata fixes from ambiguous suggestions requiring human review.
+A local-first Java/Spring Boot application for reviewing PDF structure and applying human-approved repairs. The workspace connects rendered page regions to tags, reading order, and figure descriptions; each supported repair is written to a separate copy and verified before download.
+
+**Portfolio overview:** Built with Java 21, Spring Boot, Apache PDFBox, and vanilla JavaScript. Automated Java, JavaScript state, and Playwright/axe browser tests cover repair outcomes, source isolation, keyboard navigation, and accessibility checks. Tagging suggestions are rule-based; the application does not call an external AI provider.
+
+**Quick walkthrough:** Run the app locally, choose **Load tagged demo**, inspect a figure in **Tags & alt text**, queue an alternative-text repair, then open **Review & export** to verify and download the repaired copy and transaction record. The synthetic demo requires no personal documents.
 
 > [!IMPORTANT]
 > This project is a remediation assistant, not a compliance guarantee. It does not guarantee PAC, PDF/UA, WCAG, Section 508, or legal compliance. Final accessibility evaluation requires appropriate automated and human testing.
@@ -21,14 +25,13 @@ An AI-assisted PDF accessibility remediation tool that separates safe, determini
 
 Development and demonstration use only public or synthetic PDFs unless workplace use has been explicitly approved. Document content must not be sent to an external AI service until the provider, disclosure, consent, and data-handling approach have been deliberately accepted.
 
-## Intended stack
+## Current stack
 
-- Java 21
-- Spring Boot and Maven
-- Spring Web and Bean Validation
+- Java 21, Spring Boot, Maven, Spring Web, and Bean Validation
 - Apache PDFBox
-- veraPDF where practical
-- JUnit 5 and Mockito
+- Vanilla JavaScript
+- JUnit/AssertJ and JavaScript state tests
+- Playwright and axe browser checks
 - GitHub Actions
 
 The build targets Java 21. The initial implementation uses Spring Boot 3.5.16 and Apache PDFBox 3.0.8.
